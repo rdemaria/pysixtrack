@@ -1,0 +1,7 @@
+option,-echo;
+call, file='SPS_Q20_thin.seq';
+use, sequence=sps;
+
+twiss;
+
+write,table=twiss,file="twiss_SPS_Q20_thin.tfs";

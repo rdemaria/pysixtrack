@@ -1,3 +1,11 @@
+#specific to pysixtrack
+examples/sps.pickle
+checkpoint_restart.dat
+track.obs*
+madx_exec
+*~
+*.swp
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
