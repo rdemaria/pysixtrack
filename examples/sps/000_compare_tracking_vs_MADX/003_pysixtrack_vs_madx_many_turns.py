@@ -22,8 +22,10 @@ mad_sps.acta_31637.lag=0.5
 
 import pysixtrack
 
+conv=pysixtrack.convert.copy()
+conv['drift']=pysixtrack.DriftExact #to do the same as mad
 # build seq with info for pysixtrack 
-sps_seq,rest=mad_sps.sps.expand_struct(pysixtrack.convert)
+sps_seq,rest=mad_sps.sps.expand_struct(conv)
 if len(rest)>0: raise ValueError('len(rest)>0')
 
 # extract the list of names and elements - for dummies :-) 
@@ -103,6 +105,9 @@ for i_fig, coord in enumerate(pysixt_recorded.coord_names):
     spectrum_pysixtr =  np.abs(np.fft.rfft(pysixt_recorded.__dict__[coord]))
     pl.semilogy(np.linspace(0, 0.5, len(spectrum_pysixtr)),
                     spectrum_pysixtr, '.-', label='pysixtrack')
+    spectrum_err =  np.abs(np.fft.rfft(pysixt_recorded.__dict__[coord]-mad_recorded.__dict__[coord]))
+    pl.semilogy(np.linspace(0, 0.5, len(spectrum_err)),
+                    spectrum_err, '.-', label='pysixtrack')
     pl.xlabel('Tune')
     
 
