@@ -1,0 +1,20 @@
+option,-echo;
+call, file='SPS_Q20_thin.seq';
+use, sequence=sps;
+
+!show, ACTA.31637;
+ACTA.31637, volt=4.5, lag=0.5;
+
+show, ACTA.31637;
+
+!stop;
+
+twiss;
+
+set,format="35.30e";
+
+track, dump,onepass;
+start, x=1e-3, px=0., y=-0.5e-3, py=0., t=0.74, pt=0.;
+observe, place = end.10010;
+run, turns=512;
+endtrack;
