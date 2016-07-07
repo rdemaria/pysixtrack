@@ -15,6 +15,6 @@ set,format="35.30e";
 
 track, dump,onepass;
 start, x=1e-3, px=0., y=-0.5e-3, py=0., t=0.74, pt=0.;
-observe, place=end.10010;
+observe, place = mba.63190;
 run, turns=1;
 endtrack;
