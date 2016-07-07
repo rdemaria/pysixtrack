@@ -1,3 +1,9 @@
+import sys, os
+BIN = os.path.expanduser("../../")
+sys.path.append(BIN)
+BIN = os.path.expanduser("../../pysixtrack")
+sys.path.append(BIN)
+
 from pyoptics import madlang,optics
 
 #see sps/madx/a001_track_thin.madx
@@ -45,23 +51,23 @@ def trackn(n):
 
 
 
-p=trackn(27113)
+p=trackn(10)#(27113)
 check_el(p)
 
 
-def track_turn(n):
-  p=pysixtrack.Bunch(x=1e-3,px=np.zeros(5000),
-                     y=-0.5e-3,py=np.zeros(5000),
-                     tau=0.74,pt=np.zeros(5000),
-                     e0=26.01692438e9, m0=0.93827205e9)
-  out=[]
-  before=time.time()
-  for i in range(n):
-    out.append(p.copy())
-    sps.track(p)
-    now=time.time()
-    print(i,now-before)
-    before=now
-  return out
-
-tt=track_turn(10)
+#~ def track_turn(n):
+  #~ p=pysixtrack.Bunch(x=1e-3,px=np.zeros(5000),
+                     #~ y=-0.5e-3,py=np.zeros(5000),
+                     #~ tau=0.74,pt=np.zeros(5000),
+                     #~ e0=26.01692438e9, m0=0.93827205e9)
+  #~ out=[]
+  #~ before=time.time()
+  #~ for i in range(n):
+    #~ out.append(p.copy())
+    #~ sps.track(p)
+    #~ now=time.time()
+    #~ print(i,now-before)
+    #~ before=now
+  #~ return out
+#~ 
+#~ tt=track_turn(10)
