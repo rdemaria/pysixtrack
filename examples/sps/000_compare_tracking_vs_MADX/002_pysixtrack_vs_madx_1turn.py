@@ -6,7 +6,7 @@ sys.path.append(BIN)
 
 madx_exec_path = '../../../../madx'
 
-n_ele_check_against_mad = 200
+n_ele_check_against_mad = 50
 
 import numpy as np
 import replaceline as rl
