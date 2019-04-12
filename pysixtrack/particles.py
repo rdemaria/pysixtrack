@@ -24,7 +24,7 @@ class Particles(object):
     pi = 3.141592653589793238
     echarge = 1.602176565e-19
     emass = 0.510998928e6
-    pmass = 938.272081e6 #Was: 938.272046e6; correct value according to PDG 2018 938.2720813(58)e6 MeV/c²
+    pmass = 938.272046e6
     epsilon0 = 8.854187817e-12
     mu0 = 4e-7*pi
     eradius = echarge**2/(4*pi*epsilon0*emass*clight**2)

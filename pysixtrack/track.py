@@ -193,42 +193,6 @@ class RFMultipole(Element):
     __defaults__ = (0, 0, 0, 0, 0)
 
 
-
-class BeamMonitor(Element):
-    __slots__    = ( 'num_stores', 'start', 'skip', 'max_particle_id',
-                     'min_particle_id', 'is_rolling', 'is_turn_ordered' )
-    __units__    = ( '', 'turn', 'turn', '', '', '', '' )
-    __defaults__ = ( 0, 0, 1, 0, 0, False, True )
-
-    def offset( self, particle ):
-        _offset = -1
-        nn = self.max_particle_id >= self.min_particle_id \
-             and ( self.max_particle_id - self.min_particle_id + 1 ) or -1
-        assert( self.is_turn_ordered )
-
-        if particle.turn >= self.start and nn > 0 and \
-            particle.partid >= self.min_particle_id and \
-            particle.partid <= self.max_particle_id:
-            turns_since_start = particle.turns - self.start
-            store_index = turns_since_start // self.skip
-            if store_index < self.num_stores:
-                pass
-            elif self.is_rolling:
-                store_index = store_index % self.num_stores
-            else:
-                store_index = -1
-
-            if  store_index >= 0:
-                _offset = store_index * nn + particle.partid
-
-        return _offset
-
-    def track( self, particle ):
-        pass
-
-
-
-
 class Line(Element):
     __slots__ = ('elements',)
     __defaults__ = ([],)
@@ -351,5 +315,3 @@ __all__ = [cls.__name__ for cls in elements]
 __all__.append('element_types')
 
 element_types = dict((cls.__name__, cls) for cls in elements)
-
-
