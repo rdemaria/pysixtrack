@@ -103,7 +103,7 @@ class Multipole(Element):
             "Rotation angle of the reference trajectory in the vertical plane",
             0,
         ),
-        ("length", "m", "Length of the orginating thick multipole", 0),
+        ("length", "m", "Length of the originating thick multipole", 0),
     ]
 
     @property

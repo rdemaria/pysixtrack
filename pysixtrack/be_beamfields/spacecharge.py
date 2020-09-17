@@ -24,7 +24,7 @@ class SpaceChargeCoasting(Element):
             sigma_x = self.sigma_x
             sigma_y = self.sigma_y
 
-            charge = p.qratio * p.q0 * p.echarge
+            charge = p.q0 * p.echarge
             x = p.x - self.x_co
             px = p.px
             y = p.y - self.y_co
@@ -48,10 +48,10 @@ class SpaceChargeCoasting(Element):
             fact_kick = (
                 chi
                 * self.line_density
+                * (charge * p.qratio)
                 * charge
-                * charge
-                * (1 - beta * beta)
-                / p0c
+                * (1 - p.beta0 * beta)
+                / (p0c * beta)
                 * length
             )
 
@@ -87,7 +87,7 @@ class SpaceChargeBunched(Element):
             sigma_x = self.sigma_x
             sigma_y = self.sigma_y
 
-            charge = p.qratio * p.q0 * p.echarge
+            charge = p.q0 * p.echarge
             x = p.x - self.x_co
             px = p.px
             y = p.y - self.y_co
@@ -110,7 +110,12 @@ class SpaceChargeBunched(Element):
             )
 
             fact_kick = (
-                chi * charge * charge * (1 - beta * beta) / p0c * length
+                chi
+                * (charge * p.qratio)
+                * charge
+                * (1 - p.beta0 * beta)
+                / (p0c * beta)
+                * length
             )
 
             fact_kick *= (

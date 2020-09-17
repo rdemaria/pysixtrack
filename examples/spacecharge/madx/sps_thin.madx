@@ -74,7 +74,7 @@
  match, sequence=sps;
  vary, name=kqd, step=1e-8;
  vary, name=kqf1, step=1e-8;
- global, q1=20.15, q2=20.25;
+ global, q1=20.20, q2=20.35;
  lmdif, calls=1000, tolerance=1e-22;
  endmatch;
 

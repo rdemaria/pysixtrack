@@ -10,7 +10,7 @@ import example_helpers as hp
 import footprint
 
 track_with = "PySixtrack"
-# track_with = 'Sixtracklib'
+# track_with = "Sixtracklib"
 device = "0.0"
 device = None
 # device = 'opencl:0.0'
@@ -29,8 +29,7 @@ with open("DpxDpy_for_footprint.pkl", "rb") as fid:
 xy_norm = temp_data["xy_norm"]
 DpxDpy_wrt_CO = temp_data["DpxDpy_wrt_CO"]
 
-part = partCO.copy()  # pysixtrack.Particles(**partCO)
-part._m = pysixtrack.Particles()._m  # to be sorted out later
+part = partCO.copy()  
 
 start_time = time.time()
 
@@ -135,6 +134,6 @@ footprint.draw_footprint(Qxy_fp, axis_object=axFP, linewidth=1)
 # fig4.suptitle(info)
 axFP.set_xlabel("Qx")
 axFP.set_ylabel("Qy")
-axFP.set_xlim(0, 0.25)
-axFP.set_ylim(0, 0.25)
+axFP.set_xlim(0, 0.35)
+axFP.set_ylim(0, 0.35)
 plt.show()
