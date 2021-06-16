@@ -20,34 +20,38 @@ def test_line():
 
     n_elements = 3
     position = 1
-    line.insert_element(position, drift_exact, "exact drift")
+    drift_exact_name = "exact drift"
+    line.insert_element(position, drift_exact, drift_exact_name)
     n_elements += 1
     assert len(line) == n_elements
-    assert line.find_element_ids(drift_exact)[0] == position
+    assert line.find_element_ids(drift_exact_name)[0] == position
     assert line.get_length() == length
 
-    line.insert_element(position, multipole, "multipole")
+    multipole_name = "multipole"
+    line.insert_element(position, multipole, multipole_name)
     n_elements += 1
     line.insert_element(position + 1, aperture, "multipole_aperture")
     n_elements += 1
     assert len(line) == n_elements
 
-    line.add_offset_error_to(multipole, dx=0, dy=0)
-    assert len(line) == n_elements
-
-    line.add_offset_error_to(multipole, dx=0.2, dy=-0.003)
+    line._add_offset_error_to(multipole_name, dx=0, dy=0)
     n_elements += 2
     assert len(line) == n_elements
 
-    line.add_tilt_error_to(multipole, angle=0)
-    assert len(line) == n_elements
-
-    line.add_tilt_error_to(multipole, angle=0.1)
+    line._add_offset_error_to(multipole_name, dx=0.2, dy=-0.003)
     n_elements += 2
     assert len(line) == n_elements
 
-    line.add_multipole_error_to(multipole, knl=[0, 0.1], ksl=[-0.03, 0.01])
-    # line.add_multipole_error_to(drift_exact,knl=[0,0.1],ksl=[-0.03,0.01])
+    line._add_tilt_error_to(multipole_name, angle=0)
+    n_elements += 2
+    assert len(line) == n_elements
+
+    line._add_tilt_error_to(multipole_name, angle=0.1)
+    n_elements += 2
+    assert len(line) == n_elements
+
+    line._add_multipole_error_to(multipole_name, knl=[0, 0.1], ksl=[-0.03, 0.01])
+    # line._add_multipole_error_to(drift_exact,knl=[0,0.1],ksl=[-0.03,0.01])
 
     line_dict = line.to_dict()
     line = pysixtrack.Line.from_dict(line_dict)

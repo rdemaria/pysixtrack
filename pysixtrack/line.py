@@ -6,6 +6,13 @@ from .particles import Particles
 
 from .loader_sixtrack import _expand_struct
 from .loader_mad import iter_from_madx_sequence
+from .closed_orbit import linearize_around_closed_orbit
+from .closed_orbit import healy_symplectify
+from .linear_normal_form import _linear_normal_form
+
+
+# missing access to particles._m:
+deg2rad = np.pi / 180.
 
 
 class Line(Element):
@@ -189,11 +196,66 @@ class Line(Element):
 
         return elements, names
 
-    def find_closed_orbit(
-        self, p0c, guess=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], method="Nelder-Mead"
+    def get_element_ids_of_type(self, types, start_idx_offset=0):
+        assert start_idx_offset >= 0
+        if not hasattr(types, "__iter__"):
+            type_list = [types]
+        else:
+            type_list = types
+        elem_idx = []
+        for idx, elem in enumerate(self.elements):
+            for tt in type_list:
+                if isinstance(elem, tt):
+                    elem_idx.append(idx+start_idx_offset)
+                    break
+        return elem_idx
+
+    def linear_normal_form(self, M):
+        return _linear_normal_form(M)
+
+    def find_closed_orbit_and_linear_OTM(
+        self, p0c, guess=None, d=1.e-7, tol=1.e-10, max_iterations=20, longitudinal_coordinate='zeta'
     ):
+        if guess is None:
+            guess = [0., 0., 0., 0., 0., 0.]
+        
+        assert len(guess) == 6
+
+        closed_orbit = np.array(guess).copy()
+    
+        canonical_conjugate_momentum = {'tau' : 'ptau', 'zeta' : 'delta', 'sigma' : 'psigma'}
+    
+        if longitudinal_coordinate not in ['tau', 'zeta', 'sigma']:
+            raise Exception('Longitudinal variable not recognized in search of closed orbit')
+    
+        longitudinal_momentum = canonical_conjugate_momentum[longitudinal_coordinate]
+    
+        for i in range(max_iterations):
+            new_closed_orbit, M = linearize_around_closed_orbit(
+                self, closed_orbit, p0c, d, longitudinal_coordinate, longitudinal_momentum
+            )
+
+            error = np.linalg.norm( new_closed_orbit - closed_orbit )
+    
+            closed_orbit = new_closed_orbit
+            if error < tol:
+                print('Converged with approximate distance: {}'.format(error))
+                _, M = linearize_around_closed_orbit(
+                    self, closed_orbit, p0c, d, longitudinal_coordinate, longitudinal_momentum
+                )
+                return closed_orbit, healy_symplectify(M)
+    
+            print ('Closed orbit search iteration: {}'.format(i))
+    
+        print('WARNING!: Search did not converge, approximate distance: {}'.format(error))
+        return closed_orbit, healy_symplectify(M)
+
+    def find_closed_orbit(
+            self, p0c, guess=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            method="Nelder-Mead", **kwargs
+            ):
         def _one_turn_map(coord):
-            pcl = Particles(p0c=p0c)
+            pcl = Particles(p0c=p0c, **kwargs)
             pcl.x = coord[0]
             pcl.px = coord[1]
             pcl.y = coord[2]
@@ -203,7 +265,7 @@ class Line(Element):
 
             self.track(pcl)
             coord_out = np.array(
-                [pcl.x, pcl.px, pcl.y, pcl.py, pcl.sigma, pcl.delta]
+                [pcl.x, pcl.px, pcl.y, pcl.py, pcl.zeta, pcl.delta]
             )
 
             return coord_out
@@ -221,7 +283,7 @@ class Line(Element):
                 _CO_error, np.array(guess), tol=1e-20, method=method
             )
 
-        pcl = Particles(p0c=p0c)
+        pcl = Particles(p0c=p0c, **kwargs)
 
         pcl.x = res.x[0]
         pcl.px = res.x[1]
@@ -325,6 +387,7 @@ class Line(Element):
         exact_drift=False,
         drift_threshold=1e-6,
         install_apertures=False,
+        apply_madx_errors=False,
     ):
 
         line = cls(elements=[], element_names=[])
@@ -339,52 +402,89 @@ class Line(Element):
         ):
             line.append_element(el, el_name)
 
+        if apply_madx_errors:
+            line._apply_madx_errors(sequence)
+
         return line
 
     # error handling (alignment, multipole orders, ...):
 
-    def find_element_ids(self, element):
-        """Find element in this Line instance's self.elements.
+    def find_element_ids(self, element_name):
+        """Find element_name in this Line instance's
+        self.elements_name list. Assumes the names are unique.
 
         Return index before and after the element, taking into account
         attached _aperture instances (LimitRect, LimitEllipse, ...)
         which would follow the element occurrence in the list.
 
-        Raises IndexError if element not in this Line.
+        Raises IndexError if element_name not found in this Line.
         """
         # will raise error if element not present:
-        idx_el = self.elements.index(element)
-        idx_after_el = idx_el + 1
-        el_name = self.element_names[idx_el]
-        if self.element_names[idx_after_el] == el_name + "_aperture":
-            idx_after_el += 1
+        idx_el = self.element_names.index(element_name)
+        try:
+            # if aperture marker is present
+            idx_after_el = self.element_names.index(element_name + "_aperture") + 1
+        except ValueError:
+            # if aperture marker is not present
+            idx_after_el = idx_el + 1
         return idx_el, idx_after_el
 
-    def add_offset_error_to(self, element, dx=0, dy=0):
-        idx_el, idx_after_el = self.find_element_ids(element)
-        el_name = self.element_names[idx_el]
-        if not dx and not dy:
-            return
+    def _add_offset_error_to(self, element_name, dx=0, dy=0):
+        idx_el, idx_after_el = self.find_element_ids(element_name)
         xyshift = elements.XYShift(dx=dx, dy=dy)
         inv_xyshift = elements.XYShift(dx=-dx, dy=-dy)
-        self.insert_element(idx_el, xyshift, el_name + "_offset_in")
+        self.insert_element(idx_el, xyshift, element_name + "_offset_in")
         self.insert_element(
-            idx_after_el + 1, inv_xyshift, el_name + "_offset_out"
+            idx_after_el + 1, inv_xyshift, element_name + "_offset_out"
         )
 
-    def add_tilt_error_to(self, element, angle):
-        idx_el, idx_after_el = self.find_element_ids(element)
-        el_name = self.element_names[idx_el]
-        if not angle:
+    def _add_aperture_offset_error_to(self, element_name, arex=0, arey=0):
+        idx_el, idx_after_el = self.find_element_ids(element_name)
+        idx_el_aper = idx_after_el - 1
+        if not self.element_names[idx_el_aper] == element_name + "_aperture":
+            # it is allowed to provide arex/arey without providing an aperture
+            print('Info: Element', element_name, ': arex/y provided without aperture -> arex/y ignored')
             return
+        xyshift = elements.XYShift(dx=arex, dy=arey)
+        inv_xyshift = elements.XYShift(dx=-arex, dy=-arey)
+        self.insert_element(idx_el_aper, xyshift, element_name + "_aperture_offset_in")
+        self.insert_element(
+            idx_after_el + 1, inv_xyshift, element_name + "_aperture_offset_out"
+        )
+
+    def _add_tilt_error_to(self, element_name, angle):
+        '''Alignment error of transverse rotation around s-axis.
+        The element corresponding to the given `element_name`
+        gets wrapped by SRotation elements with rotation angle
+        `angle`.
+
+        In the case of a thin dipole component, the corresponding
+        curvature terms in the Multipole (hxl and hyl) are rotated
+        by `angle` as well.
+        '''
+        idx_el, idx_after_el = self.find_element_ids(element_name)
+        element = self.elements[self.element_names.index(element_name)]
+        if isinstance(element, elements.Multipole) and (
+                element.hxl or element.hyl):
+            dpsi = angle * deg2rad
+
+            hxl0 = element.hxl
+            hyl0 = element.hyl
+
+            hxl1 = hxl0 * np.cos(dpsi) - hyl0 * np.sin(dpsi)
+            hyl1 = hxl0 * np.sin(dpsi) + hyl0 * np.cos(dpsi)
+
+            element.hxl = hxl1
+            element.hyl = hyl1
         srot = elements.SRotation(angle=angle)
         inv_srot = elements.SRotation(angle=-angle)
-        self.insert_element(idx_el, srot, el_name + "_tilt_in")
-        self.insert_element(idx_after_el + 1, inv_srot, el_name + "_tilt_out")
+        self.insert_element(idx_el, srot, element_name + "_tilt_in")
+        self.insert_element(idx_after_el + 1, inv_srot, element_name + "_tilt_out")
 
-    def add_multipole_error_to(self, element, knl=[], ksl=[]):
+    def _add_multipole_error_to(self, element_name, knl=[], ksl=[]):
         # will raise error if element not present:
-        assert element in self.elements
+        assert element_name in self.element_names
+        element = self.elements[self.element_names.index(element_name)]
         # normal components
         knl = np.trim_zeros(knl, trim="b")
         if len(element.knl) < len(knl):
@@ -398,13 +498,13 @@ class Line(Element):
         for i, component in enumerate(ksl):
             element.ksl[i] += component
 
-    def apply_madx_errors(self, error_table):
-        """Applies MAD-X error_table (with multipole errors,
-        dx and dy offset errors and dpsi tilt errors)
-        to existing elements in this Line instance.
+    def _apply_madx_errors(self, madx_sequence):
+        """Applies errors from MAD-X sequence to existing
+        elements in this Line instance.
 
-        Return error_table names which were not found in the
-        elements of this Line instance (and thus not treated).
+        Return names of MAD-X elements with existing align_errors
+        or field_errors which were not found in the elements of
+        this Line instance (and thus not treated).
 
         Example via cpymad:
             madx = cpymad.madx.Madx()
@@ -412,69 +512,58 @@ class Line(Element):
             # (...set up lattice and errors in cpymad...)
 
             seq = madx.sequence.some_lattice
-            # store already applied errors:
-            madx.command.esave(file='lattice_errors.err')
-            madx.command.readtable(
-                file='lattice_errors.err', table="errors")
-            errors = madx.table.errors
-
-            pysixtrack_line = Line.from_madx_sequence(seq)
-            pysixtrack_line.apply_madx_errors(errors)
+            pysixtrack_line = pysixtrack.Line.from_madx_sequence(
+                                    seq,
+                                    apply_madx_errors=True
+                              )
         """
-        max_multipole_err = 0
-        # check for errors in table which cannot be treated yet:
-        for error_type in error_table.keys():
-            if error_type == "name":
-                continue
-            if any(error_table[error_type]):
-                if error_type in ["dx", "dy", "dpsi"]:
-                    # available alignment error
-                    continue
-                elif error_type[:1] == "k" and error_type[-1:] == "l":
-                    # available multipole error
-                    order = int("".join(c for c in error_type if c.isdigit()))
-                    max_multipole_err = max(max_multipole_err, order)
-                else:
-                    print(
-                        f'Warning: MAD-X error type "{error_type}"'
-                        " not implemented yet."
-                    )
-
         elements_not_found = []
-        for i_line, element_name in enumerate(error_table["name"]):
+        for element, element_name in zip(
+                madx_sequence.expanded_elements,
+                madx_sequence.expanded_element_names()
+        ):
             if element_name not in self.element_names:
-                elements_not_found.append(element_name)
-                continue
-            element = self.elements[self.element_names.index(element_name)]
+                if element.align_errors or element.field_errors:
+                    elements_not_found.append(element_name)
+                    continue
 
-            # add offset
-            try:
-                dx = error_table["dx"][i_line]
-            except KeyError:
-                dx = 0
-            try:
-                dy = error_table["dy"][i_line]
-            except KeyError:
-                dy = 0
-            self.add_offset_error_to(element, dx, dy)
+            if element.align_errors:
+                # add offset
+                dx = element.align_errors.dx
+                dy = element.align_errors.dy
+                if dx or dy:
+                    self._add_offset_error_to(element_name, dx, dy)
 
-            # add tilt
-            try:
-                dpsi = error_table["dpsi"][i_line]
-                self.add_tilt_error_to(element, angle=dpsi * 180 / np.pi)
-            except KeyError:
-                pass
+                # add tilt
+                dpsi = element.align_errors.dpsi
+                if dpsi:
+                    self._add_tilt_error_to(element_name, angle=dpsi / deg2rad)
 
-            # add multipole error
-            knl = [
-                error_table[f"k{o}l"][i_line]
-                for o in range(max_multipole_err + 1)
-            ]
-            ksl = [
-                error_table[f"k{o}sl"][i_line]
-                for o in range(max_multipole_err + 1)
-            ]
-            self.add_multipole_error_to(element, knl, ksl)
+                # add aperture-only offset
+                arex = element.align_errors.arex
+                arey = element.align_errors.arey
+                if arex or arey:
+                    self._add_aperture_offset_error_to(element_name, arex, arey)
+
+                # check for errors which cannot be treated yet:
+                for error_type in dir(element.align_errors):
+                    if not error_type[0] == '_' and \
+                            error_type not in ['dx', 'dy', 'dpsi', 'arex',
+                                               'arey', 'count', 'index']:
+                        print(
+                            f'Warning: MAD-X error type "{error_type}"'
+                            " not implemented yet."
+                        )
+
+            if element.field_errors:
+                # add multipole error
+                if any(element.field_errors.dkn) or \
+                            any(element.field_errors.dks):
+                    knl = element.field_errors.dkn
+                    ksl = element.field_errors.dks
+                    knl = knl[:np.amax(np.where(knl)) + 1]  # delete trailing zeros
+                    ksl = ksl[:np.amax(np.where(ksl)) + 1]  # to keep order low
+                    self._add_multipole_error_to(element_name, knl, ksl)
 
         return elements_not_found
 

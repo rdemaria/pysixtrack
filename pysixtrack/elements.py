@@ -3,8 +3,9 @@ import numpy as np
 from .base_classes import Element
 from .be_beamfields.beambeam import BeamBeam4D
 from .be_beamfields.beambeam import BeamBeam6D
-from .be_beamfields.spacecharge import SpaceChargeCoasting
-from .be_beamfields.spacecharge import SpaceChargeBunched
+from .be_beamfields.spacecharge import SCCoasting
+from .be_beamfields.spacecharge import SCQGaussProfile
+from .be_beamfields.spacecharge import SCInterpolatedProfile
 
 _factorial = np.array(
     [
@@ -367,8 +368,7 @@ class LimitRectEllipse(Element):
                 and x <= self.max_x
                 and y >= -self.max_y
                 and y <= self.max_y
-                and x * x / (self.a * self.a) + y * y / (self.b * self.b)
-                <= 1.0
+                and x * x / (self.a * self.a) + y * y / (self.b * self.b) <= 1.0
             )
             if particle.state != 1:
                 return "Particle lost"
@@ -378,10 +378,7 @@ class LimitRectEllipse(Element):
                 & (x <= self.max_x)
                 & (y >= -self.max_y)
                 & (y <= self.max_y)
-                & (
-                    x * x / (self.a * self.a) + y * y / (self.b * self.b)
-                    <= 1.0
-                )
+                & (x * x / (self.a * self.a) + y * y / (self.b * self.b) <= 1.0)
             )
             particle.remove_lost_particles()
             if len(particle.state) == 0:
@@ -467,8 +464,9 @@ __all__ = [
     "LimitRect",
     "Multipole",
     "RFMultipole",
+    "SCCoasting",
+    "SCInterpolatedProfile",
+    "SCQGaussProfile",
     "SRotation",
-    "SpaceChargeBunched",
-    "SpaceChargeCoasting",
     "XYShift",
 ]

@@ -3,7 +3,7 @@ import pysixtrack
 
 six = sixtracktools.SixInput(".")
 line = pysixtrack.Line.from_sixinput(six)
-iconv = line.other_data["iconv"]
+iconv = line.other_info["iconv"]
 
 sixdump = sixtracktools.SixDump101("res/dump.dat")[1::2]
 

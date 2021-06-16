@@ -14,10 +14,10 @@ sixinput = sixtracktools.SixInput(".")
 p0c_eV = sixinput.initialconditions[-3] * 1e6
 
 # Build pysixtrack line from sixtrack input
-line, other_data = pysixtrack.Line.from_sixinput(sixinput)
+line = pysixtrack.Line.from_sixinput(sixinput)
 
 # Info on sixtrack->pyblep conversion
-iconv = line.other_data["iconv"]
+iconv = line.other_info["iconv"]
 
 ########################################################
 #                  Search closed orbit                 #

@@ -1,7 +1,6 @@
 import numpy as np
-
-from pysixtrack.mathlibs import MathlibDefault
 import pysixtrack
+from pysixtrack.mathlibs import MathlibDefault
 from pysixtrack.be_beamfields.gaussian_fields import (
     _get_transv_field_gauss_ellip,
 )
@@ -12,7 +11,7 @@ def test_track_spacecharge():
     y_co = -0.5
     sigma_x = 0.5
     sigma_y = 0.1
-    el1 = pysixtrack.elements.SpaceChargeBunched(
+    el1 = pysixtrack.elements.SCQGaussProfile(
         number_of_particles=1e11,
         bunchlength_rms=0.22,
         sigma_x=sigma_x,
@@ -21,11 +20,9 @@ def test_track_spacecharge():
         x_co=x_co,
         y_co=y_co,
     )
-    line_density = el1.number_of_particles / (
-        el1.bunchlength_rms * np.sqrt(2 * np.pi)
-    )
-    el2 = pysixtrack.elements.SpaceChargeCoasting(
-        line_density=line_density,
+    el2 = pysixtrack.elements.SCCoasting(
+        number_of_particles=el1.number_of_particles,
+        circumference=el1.bunchlength_rms * np.sqrt(2 * np.pi),
         sigma_x=el1.sigma_x,
         sigma_y=el1.sigma_y,
         length=el1.length,
@@ -99,3 +96,7 @@ def test_get_transv_field_gauss_ellip():
         )
     except ZeroDivisionError:
         pass  # test passed
+
+
+if __name__ == "__main__":
+    test_track_spacecharge()

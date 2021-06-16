@@ -6,7 +6,9 @@ from cpymad.madx import Madx
 import pysixtrack
 
 from pysixtrack.be_beamfields.tools import get_bb_names_madpoints_sigmas
-from pysixtrack.be_beamfields.tools import shift_strong_beam_based_on_close_ip
+from pysixtrack.be_beamfields.tools import (
+    compute_shift_strong_beam_based_on_close_ip,
+)
 from pysixtrack.be_beamfields.tools import setup_beam_beam_in_line
 from pysixtrack import MadPoint
 
@@ -68,7 +70,7 @@ assert (
 )
 
 # Correct for small shifts between surveys of the two beams
-shift_strong_beam_based_on_close_ip(
+strong_shifts = compute_shift_strong_beam_based_on_close_ip(
     points_weak=bb_xyz_b1,
     points_strong=bb_xyz_b2,
     IPs_survey_weak=IP_xyz_b1,
@@ -96,6 +98,7 @@ setup_beam_beam_in_line(
     bb_sigmas_strong=bb_sigmas_b2,
     bb_points_weak=bb_xyz_b1,
     bb_points_strong=bb_xyz_b2,
+    bb_shift_strong=strong_shifts,
     beta_r_strong=beta_r,
     bunch_intensity_strong=bunch_intensity,
     n_slices_6D=n_slices,

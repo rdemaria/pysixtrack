@@ -17,7 +17,7 @@ class Particles(object):
     s       [m]  Reference accumulated pathlength
     x       [m]  Horizontal offset
     px      [1]  Px / (m/m0 * p0c) = beta_x gamma /(beta0 gamma0)
-    y       [m   Vertical offset]
+    y       [m]  Vertical offset
     py      [1]  Py / (m/m0 * p0c)
     delta   [1]  Pc / (m/m0 * p0c) - 1
     ptau    [1]  Energy / (m/m0 * p0c) - 1
@@ -224,7 +224,7 @@ class Particles(object):
         qratio=None,
         partid=None,
         turn=None,
-        state=None,  # ==1 particle lost
+        state=None,  # == 0 particle lost, == 1 particle active
         elemid=None,
         mathlib=MathlibDefault,
         **args,
@@ -246,19 +246,21 @@ class Particles(object):
         self.__init__chi(chi, mratio, qratio)
         self._update_coordinates = True
         length = self._check_array_length()
+
         if partid is None:
-            if length is not None:
-                partid = np.arange(length)
+            partid = np.arange(length) if length is not None else 0
         self.partid = partid
 
         if turn is None:
-            if length is not None:
-                turn = np.zeros(length)
+            turn = np.zeros(length) if length is not None else 0
         self.turn = turn
 
+        if elemid is None:
+            elemid = np.zeros(length) if length is not None else 0
+        self.elemid = elemid
+
         if state is None:
-            if length is not None:
-                state = np.zeros(length)
+            state = np.ones(length) if length is not None else 1
         self.state = state
 
         self.lost_particles = []
@@ -474,9 +476,7 @@ class Particles(object):
 
             if np.any(~mask_valid):
                 if keep_memory:
-                    to_trash = (
-                        self.copy()
-                    )  # Not exactly efficient (but robust)
+                    to_trash = self.copy()  # Not exactly efficient (but robust)
                     for ff in self._dict_vars:
                         if hasattr(getattr(self, ff), "__iter__"):
                             setattr(

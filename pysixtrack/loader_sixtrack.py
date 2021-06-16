@@ -36,6 +36,7 @@ def _expand_struct(sixinput, convert=elements):
     # Line = convert.Line
     BeamBeam4D = convert.BeamBeam4D
     BeamBeam6D = convert.BeamBeam6D
+    RFMultipole = convert.RFMultipole
     exclude = False
     # add special elenents
     if "CAV" in sixinput.iter_struct():
@@ -114,6 +115,29 @@ def _expand_struct(sixinput, convert=elements):
                 elem = BeamBeam6D(**thisbb._asdict())
             else:
                 raise ValueError("What?!")
+        elif etype == 23:
+            print(nnn, sixinput.single[nnn])
+            voltage_V = d1 *1e6
+            freq_Hz = d2 * 1e6
+            phase_rad = d3
+            p0c_eV = sixinput.initialconditions[12]*1e6
+            elem = RFMultipole(
+                frequency = freq_Hz,
+                knl= [voltage_V / p0c_eV],
+                pn=[90.],
+                )
+        elif etype == -23:
+            voltage_V = d1 *1e6
+            freq_Hz = d2 * 1e6
+            phase_rad = d3
+            p0c_eV = sixinput.initialconditions[12]*1e6
+            print(nnn, sixinput.single[nnn])
+            print(f'p0c_eV: {p0c_eV}')
+            elem = RFMultipole(
+                frequency = freq_Hz,
+                ksl= [-voltage_V / p0c_eV],
+                ps=[90.],
+                )
         else:
             rest.append([nnn] + sixinput.single[nnn])
         if elem is not None:
